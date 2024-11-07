@@ -1,0 +1,12 @@
+citHeader("To cite AllocateMate in publications use:")
+
+citEntry(
+  entry    = "Manual",
+  title    = "AllocateMate: An R package for mate allocation",
+  author   = "Hamilton, MG",
+  publisher = "Penang, Malaysia: CGIAR Research Program on Fish Agri-Food Systems",
+  year     = "2021",
+  pages    = "9",
+  url      = "",
+  textVersion = paste("Hamilton, MG. 2021. AllocateMate: An R package for mate allocation. Penang, Malaysia: CGIAR Research Program on Fish Agri-Food Systems. <Publication No>.")
+)
