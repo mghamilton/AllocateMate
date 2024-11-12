@@ -15,7 +15,7 @@
 #'  \item{'ID' is the individual identifier (character).} 
 #'  \item{'SEX' is the sex of the individual - 'M' or 'F', for male and female respectively (character).} 
 #'  \item{'EBV' Estimated breeding value (EBV) of the individual - can not be NA if applying assortative mating as the method (numeric).} 
-#'  \item{'N_AS_PARENT' The number of families the indivdiual is to contribute to. Can be zero if backup parents are included (integer).} 
+#'  \item{'N_AS_PARENT' The number of families the indivdiual is to contribute to. Can be zero if backup parents are to be included in the mating list output (integer).} 
 #'  \item{'FAM' is the full-sibling family identifier. This column may be omitted (character).} 
 #' }
 #' @param max_F is the maximum inbreeding coefficient allowed in the offspring of parents (numeric between 0 and 1)
@@ -132,7 +132,7 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   output$mating_list <- get_optimal_all_candidates(optimal_families = output$optimal_families, 
                                                    all_candidates = all_candidates)
   output$mating_list <- left_join(output$mating_list, 
-                                  output$optimal_families, 
+                                  output$optimal_families[,c("SIRE", "DAM", "F", "EBV")], 
                                   by = c("SIRE", "DAM"))
   #  }
   
