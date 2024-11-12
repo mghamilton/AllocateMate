@@ -4,7 +4,7 @@
 #' This function generates a mating list for a set of parents.  
 #' The mating list can be generated i) to minimise the average inbreeding coefficient (F) of families generated or ii) according to assortative mating principles.
 #' Inputs include a list of parents and a 3-column pedigree file specifying the ancestry of these candidates.
-#' @param ped is a 3-column dataframe with the following columns (class in parentheses):
+#' @param ped is a 3-column data frame with the following columns (class in parentheses):
 #' \itemize{
 #'  \item{'ID' is the individual identifier of parents and their ancestors (character).} 
 #'  \item{'DAM' is the identifier of the individual's dam (NA if unknown) (character).} 
@@ -15,9 +15,10 @@
 #'  \item{'ID' is the individual identifier (character).} 
 #'  \item{'SEX' is the sex of the individual - 'M' or 'F', for male and female respectively (character).} 
 #'  \item{'EBV' Estimated breeding value (EBV) of the individual - can not be NA if applying assortative mating as the method (numeric).} 
-#'  \item{'N_AS_PARENT' The number of families the indivdiual is to contribute to (integer).} 
+#'  \item{'N_AS_PARENT' The number of families the indivdiual is to contribute to. Can be zero if backup parents are included (integer).} 
+#'  \item{'FAM' is the full-sibling family identifier. This column may be omitted (character).} 
 #' }
-#' @param max_F is the maxiumum inbreeding coefficient allowed in the offspring of parents (numeric between 0 and 1)
+#' @param max_F is the maximum inbreeding coefficient allowed in the offspring of parents (numeric between 0 and 1)
 #' @param method either 'min_F' (to minimise the average inbreeding in offspring) or 'assortative' (to apply assortative mating) (character)
 #' @param n_fam_crosses is the maximum number of siblings from one family allowed to be crossed with siblings of another family.  This represents a constraint on the generation of 'double first cousins'. (integer)
 #' @return 'summary' is a data frame containing a summary of all possible families generated from crosses between parents: 
@@ -73,13 +74,37 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   #library(AGHmatrix)
   #library(dplyr)
   
+  #split parents
+  if(!"N_AS_PARENT" %in% colnames(parents)) {
+    stop("Column N_AS_PARENT is not present in \'parents\'.")
+  } 
+  
+  if(!is.integer(parents$N_AS_PARENT)) {
+    stop("N_AS_PARENT must be a vector of type integer")
+  } 
+  
+  if(sum(is.na(parents$N_AS_PARENT)) != 0) {
+    stop("N_AS_PARENT contains missing values")
+  } 
+  
+  all_candidates <- parents
+  parents <- parents[parents$N_AS_PARENT > 0,]
+  
+  #  if(nrow(parents) == nrow(all_candidates)) { 
+  #    all_candidates <-  NULL
+  #  }
+  
   check.parents(parents)  
   check.ped2(ped)
+  ped <- reduce.ped(ped = ped, parents = parents)
   check.n_fam_crosses(n_fam_crosses)
   check.max_F(max_F)
   check.method(method)
   
-  ped <- reduce.ped(ped = ped, parents = parents)
+  # if(!is.null(all_candidates)) {
+  all_candidates <- check.all_candidates(ped, parents, all_candidates)
+  #  }
+  
   #ped <- nadiv::prunePed(ped = ped, phenotyped = parents$ID)
   ped[ped$DAM  == 0 & !is.na(ped$DAM), "DAM"]  <- NA
   ped[ped$SIRE == 0 & !is.na(ped$SIRE),"SIRE"] <- NA
@@ -102,6 +127,17 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   if(method == "min_F") {
     output <- solve_lp(families = families, parents = parents, n_fam_crosses = n_fam_crosses, max_F = max_F, min_trait = "F")
   }
+  
+  #  if(!is.null(all_candidates)) {
+  output$mating_list <- get_optimal_all_candidates(optimal_families = output$optimal_families, 
+                                                   all_candidates = all_candidates)
+  output$mating_list <- left_join(output$mating_list, 
+                                  output$optimal_families, 
+                                  by = c("SIRE", "DAM"))
+  #  }
+  
+  output$A_matrix <- H[rownames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM), 
+                       colnames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM)]
   
   return(output)
   
