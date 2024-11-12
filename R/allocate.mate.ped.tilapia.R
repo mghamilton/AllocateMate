@@ -73,13 +73,37 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   #library(AGHmatrix)
   #library(dplyr)
   
+  #split parents
+  if(!"N_AS_PARENT" %in% colnames(parents)) {
+    stop("Column N_AS_PARENT is not present in \'parents\'.")
+  } 
+  
+  if(!is.integer(parents$N_AS_PARENT)) {
+    stop("N_AS_PARENT must be a vector of type integer")
+  } 
+  
+  if(sum(is.na(parents$N_AS_PARENT)) != 0) {
+    stop("N_AS_PARENT contains missing values")
+  } 
+  
+  all_candidates <- parents
+  parents <- parents[parents$N_AS_PARENT > 0,]
+  
+#  if(nrow(parents) == nrow(all_candidates)) { 
+#    all_candidates <-  NULL
+#  }
+  
   check.parents(parents)  
   check.ped2(ped)
+  ped <- reduce.ped(ped = ped, parents = parents)
   check.n_fam_crosses(n_fam_crosses)
   check.max_F(max_F)
   check.method(method)
   
-  ped <- reduce.ped(ped = ped, parents = parents)
+ # if(!is.null(all_candidates)) {
+  all_candidates <- check.all_candidates(ped, parents, all_candidates)
+  #  }
+
   #ped <- nadiv::prunePed(ped = ped, phenotyped = parents$ID)
   ped[ped$DAM  == 0 & !is.na(ped$DAM), "DAM"]  <- NA
   ped[ped$SIRE == 0 & !is.na(ped$SIRE),"SIRE"] <- NA
@@ -102,6 +126,17 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   if(method == "min_F") {
     output <- solve_lp(families = families, parents = parents, n_fam_crosses = n_fam_crosses, max_F = max_F, min_trait = "F")
   }
+  
+#  if(!is.null(all_candidates)) {
+    output$mating_list <- get_optimal_all_candidates(optimal_families = output$optimal_families, 
+                                                                   all_candidates = all_candidates)
+    output$mating_list <- left_join(output$mating_list, 
+                                    output$optimal_families, 
+                                    by = c("SIRE", "DAM"))
+#  }
+  
+  output$A_matrix <- H[rownames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM), 
+                       colnames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM)]
   
   return(output)
   

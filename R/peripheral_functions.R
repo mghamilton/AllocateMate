@@ -4,30 +4,233 @@
 #is.wholenumber function
 is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol #from https://github.com/ProjectMOSAIC/mosaic/blob/master/R/is.wholenumber.R
 
-#check pedigree function
-check.ped <- function(ped) {
-  if(sum(colnames(ped) %in% c("ID", "DAM", "SIRE")) != 3) {
-    stop("colnames of ped must be: ID, DAM and SIRE")
+check.all_candidates <- function(ped, parents, all_candidates) {
+  
+  if(sum(colnames(all_candidates) %in% c("ID", "SEX", "EBV")) != 3) {
+    stop("Column names of parents must include: ID, SEX and EBV (FAM is optional)")
   }
   
-  if(!is.character(ped$ID)) {
-    stop("Fields in ped ID, DAM and SIRE must be of class character")
+  all_candidates <- all_candidates[,colnames(all_candidates) %in% c("ID", "SEX", "EBV", "FAM")]
+  
+  if(!is.character(all_candidates$ID)) {
+    stop("ID in \'parents\' must be of type character")
   }
   
-  if(!is.character(ped$DAM)) {
-    stop("Fields in ped ID, DAM and SIRE must be of class character")
+  if(sum(!all_candidates$SEX %in% c("M","F")) > 0) {
+    stop("SEX in \'parents\' must be of type character comprised of M or F, for male and female respectively")
   }
   
-  if(!is.character(ped$SIRE)) {
-    stop("Fields in ped (ID, DAM and SIRE) must be of class character")
+  if(!is.numeric(all_candidates$EBV)) {
+    stop("EBV in \'parents\' must be of type numeric")
   }
   
-  if(sum(ped == "") > 0) {
-    stop("Fields in ped must not contain a blank spaces.  Replace with 0 or NA.")
+  if(sum(is.na(all_candidates$ID)) > 0) {
+    stop("ID field of \'parents\' must not contain missing values")
   }
   
+  if(sum(is.na(all_candidates$SEX)) > 0) {
+    stop("SEX field of \'parents\' must not contain missing values")
+  }
+
+  #all_candidates vs ped
+  
+  if (sum(!all_candidates$ID %in% ped$ID) != 0) {
+    stop("Not all IDs in \'parents\' are present in \'ped\'")
+  }
+  
+  id_check <- all_candidates[!all_candidates$ID %in% ped$ID, "ID"]
+  if (length(id_check) > 0) {
+    stop(paste0("Not all IDs in \'parents\' are present in \'ped\'. Check IDs: ",
+                paste(id_check, collapse = " ")))
+  }
+  rm(id_check)
+  
+  all_candidates <- left_join(all_candidates, ped, by = "ID") 
+  
+  if("FAM" %in% colnames(all_candidates)) {
+    
+    if(!is.character(all_candidates$FAM)) {
+      stop("FAM in \'parents\' must be of type character")
+    }
+  
+  if(sum(is.na(all_candidates$FAM)) > 0) {
+    stop("FAM field of \'parents\' must not contain missing values")
+  }
+    
+    unique_fams_all_candidates <- unique(all_candidates[,c("FAM", "SIRE", "DAM")])
+    
+    if(sum(duplicated(unique_fams_all_candidates$FAM)) > 0) {
+      stop(paste0("Same FAM identifier used for multiple combinations of SIRE and DAM.  Check parents IDs: ",
+                  paste(all_candidates[all_candidates$FAM %in% 
+                                         unique_fams_all_candidates[duplicated(unique_fams_all_candidates$FAM),"FAM"],"ID"], collapse = " "))
+      )
+    }  
+    
+    combns <- unique_fams_all_candidates[duplicated(unique_fams_all_candidates[,c("SIRE", "DAM")]),"FAM"]
+    if(length(combns) > 0) {
+      stop(paste0("Same combination of SIRE and DAM used for multiple FAM identifiers.  Check parents IDs: ",
+                  paste(all_candidates[all_candidates$FAM %in% combns,"ID"], collapse = " "))
+      )
+    }
+    rm(combns, unique_fams_all_candidates)
+  }  else {
+    fams <- unique(all_candidates[,c("SIRE", "DAM")])
+    fams$FAM <- as.character(paste0(fams$SIRE, "_", fams$DAM)) #as.character(1:nrow(fams))
+    all_candidates <- left_join(all_candidates, fams, by = c("SIRE", "DAM"))
+    rm(fams)
+ }
+  
+  #parents vs all_candidates
+  
+  id_check <- parents[!parents$ID %in% all_candidates$ID, "ID"]
+  if (length(id_check) > 0) {
+    stop(paste0("Not all IDs in \'parents\' are present in \'parents\'. Check IDs: ",
+                paste(id_check, collapse = " ")))
+  }
+  rm(id_check)
+  
+  tmp_parents <- parents[order(parents$ID),]
+  tmp_all_candidates <- all_candidates[order(all_candidates$ID),]
+  
+  sex_check <- tmp_parents[tmp_parents[,"SEX"] != tmp_all_candidates[tmp_all_candidates$ID %in% tmp_parents$ID,"SEX"],"ID"]
+  if (length(sex_check) > 0) {
+    stop(paste0("SEX in \'parents\' doesn't match \'parents\'. Check IDs: ",
+                paste(sex_check, collapse = " ")))
+  }
+  rm(sex_check)
+  
+  ebv_check <- tmp_parents[tmp_parents[,"EBV"] != tmp_all_candidates[tmp_all_candidates$ID %in% tmp_parents$ID,"EBV"],"ID"]
+  if (length(ebv_check) > 0) {
+    stop(paste0("EBV in \'parents\' doesn't match \'parents\'. Check IDs: ",
+                paste(ebv_check, collapse = " ")))
+  }
+  rm(ebv_check,tmp_all_candidates,tmp_parents)
+  
+  return(all_candidates)
 }
 
+
+  get.parents <- function(all_candidates, optimal_families, sex) {
+    indivs <- all_candidates[all_candidates$SEX == sex, c("ID", "EBV", "FAM")]
+    colnames(indivs) <- c("INDIV", "INDIV_EBV", "INDIV_FAM")
+    indivs <- indivs[order(runif(nrow(indivs))),]
+    
+    if(sex == "M") {
+      optimal_indivs <- optimal_families[,c("SIRE", "CROSS")]
+    }
+    if(sex == "F") {
+      optimal_indivs <- optimal_families[,c("DAM", "CROSS")]
+    }
+    colnames(optimal_indivs) <- c("INDIV", "CROSS")
+    
+    indivs <- indivs %>%
+      group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
+      # Rank 'INDIV_EBV' values within each group, in descending order. 
+      # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
+      # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
+      mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
+      # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
+      # This is important for further analysis to avoid accidental grouping in later operations
+      ungroup()
+    indivs <- as.data.frame(indivs)
+    
+    optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
+
+    if(mean(optimal_indivs$INDIV_RANK) < mean(indivs$INDIV_RANK)) { #Highest EBV ranked 1
+      indivs[order(indivs$INDIV_EBV , decreasing = F),]
+      optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = F),]
+      
+    } else {                                                    #Lowest EBV ranked 1
+      
+      #re-rank in opposite order
+      indivs <- indivs %>%
+        group_by(INDIV_FAM) %>% 
+        mutate(INDIV_RANK = dense_rank(INDIV_EBV)) %>% 
+        ungroup()
+      indivs <- as.data.frame(indivs)
+      
+      #regenerate optimal_indivs with modified rankings
+      optimal_indivs <- left_join(optimal_indivs, indivs) #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
+      
+      indivs[order(indivs$INDIV_EBV, decreasing = T),]
+      optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
+    }
+    
+    all_indivs <- NULL
+    for(fam in unique(optimal_indivs$INDIV_FAM)) {
+      tmp_optimal_indivs <- optimal_indivs[optimal_indivs$INDIV_FAM == fam,] 
+      tmp_optimal_indivs$INDIV_GROUP <- 1:nrow(tmp_optimal_indivs) 
+      tmp_optimal_indivs$CATEGORY <- "Selected"
+      
+      tmp_indivs <- indivs[indivs$INDIV_FAM == fam,] 
+      tmp_indivs <- tmp_indivs[!tmp_indivs$INDIV %in% tmp_optimal_indivs$INDIV,] 
+      if(nrow(tmp_indivs)> 0) {
+        tmp_indivs$CATEGORY <- "Backup"
+        tmp_indivs$INDIV_GROUP <- seq(1, nrow(tmp_indivs), by = nrow(tmp_optimal_indivs)) 
+        tmp_indivs <- left_join(tmp_indivs, tmp_optimal_indivs[,c("INDIV_FAM", "CROSS", "INDIV_GROUP")], by = c("INDIV_FAM", "INDIV_GROUP")) 
+        tmp_indivs <- rbind(tmp_optimal_indivs[,colnames(tmp_indivs)], tmp_indivs)
+        tmp_indivs <- tmp_indivs[order(tmp_indivs$INDIV_GROUP),c("INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS", "CATEGORY")]
+        all_indivs <- rbind(all_indivs, tmp_indivs)
+        rm(tmp_indivs)
+      } else {
+        all_indivs <- rbind(all_indivs, tmp_optimal_indivs)
+      }
+      rm(tmp_optimal_indivs)
+    }
+    
+    if(sex == "M") {
+      colnames(all_indivs) <- c("SIRE", "CROSS", "SIRE_EBV", "SIRE_FAM", "SIRE_RANK", "CROSS", "SIRE_CATEGORY")
+    }
+    
+    if(sex == "F") {
+      colnames(all_indivs) <- c("DAM", "CROSS", "DAM_EBV", "DAM_FAM", "DAM_RANK", "CROSS", "DAM_CATEGORY")
+    }
+    
+    return(all_indivs)
+  }
+  
+get_optimal_all_candidates <- function(optimal_families, all_candidates) {
+  
+  optimal_families$CROSS <- 1:nrow(optimal_families)
+  
+  sires <- get.parents(all_candidates, optimal_families, sex = "M")
+  dams <- get.parents(all_candidates, optimal_families, sex = "F")
+  
+  optimal_families_all_cand <- NULL
+  
+  for(cross in optimal_families$CROSS) {
+    tmp_sires <- sires[sires$CROSS == cross,]
+    tmp_dams <- dams[dams$CROSS == cross,]
+    
+    if(nrow(tmp_sires) < nrow(tmp_dams)) {
+    # Create a new data frame of 'NA' rows with the same column names as 'df'
+    na_rows <- data.frame(matrix(NA, nrow = nrow(tmp_dams) - nrow(tmp_sires), ncol = ncol(tmp_sires)))
+    colnames(na_rows) <- colnames(tmp_sires)
+    
+    # Add the 'NA' rows to the original data frame
+    tmp_sires <- rbind(tmp_sires, na_rows)
+    rm(na_rows)
+    }
+    
+    if(nrow(tmp_sires) > nrow(tmp_dams)) {
+      # Create a new data frame of 'NA' rows with the same column names as 'df'
+      na_rows <- data.frame(matrix(NA, nrow = nrow(tmp_sires) - nrow(tmp_dams), ncol = ncol(tmp_dams)))
+      colnames(na_rows) <- colnames(tmp_dams)
+      
+      # Add the 'NA' rows to the original data frame
+      tmp_dams <- rbind(tmp_dams, na_rows)
+      rm(na_rows)
+    }
+    
+    tmp_all <- cbind(tmp_sires[,colnames(tmp_sires) != "CROSS"], tmp_dams[,colnames(tmp_dams) != "CROSS"]) 
+    tmp_all <- cbind(data.frame(CROSS = cross),tmp_all) #CROSS first column
+    
+    optimal_families_all_cand <- rbind(optimal_families_all_cand, tmp_all)
+    rm(tmp_all, tmp_sires, tmp_dams)
+  }
+  return(optimal_families_all_cand)
+}
+  
 check.ped2 <- function(ped) {
   tmp <- unique(c(ped[,"DAM"], ped[,"SIRE"]))
   tmp <- tmp[tmp != 0]
@@ -76,21 +279,21 @@ check.method <- function(method) {
 check.parents <- function(parents) {
   
   if(sum(colnames(parents) %in% c("ID", "SEX", "EBV", "N_AS_PARENT")) != 4) {
-    stop("colnames of parents must be: ID, SEX, EBV and N_AS_PARENT")
+    stop("Column names of \'parents\' must be: ID, SEX, EBV and N_AS_PARENT")
   }
   
   parents <- parents[,c("ID", "SEX", "EBV", "N_AS_PARENT")]
   
   if(!is.character(parents$ID)) {
-    stop("ID must be of type character")
+    stop("ID in \'parents\' must be of type character")
   }
   
   if(sum(!parents$SEX %in% c("M","F")) > 0) {
-    stop("SEX must be of type character comprised of M or F, for male and female respectively")
+    stop("SEX in \'parents\' must be of type character comprised of M or F, for male and female respectively")
   }
   
   if(!is.numeric(parents$EBV)) {
-    stop("EBV must be of type numeric")
+    stop("EBV in \'parents\' must be of type numeric")
   }
   
   if(sum(!is.wholenumber(parents$N_AS_PARENT)) > 0) {
@@ -102,15 +305,15 @@ check.parents <- function(parents) {
   }
   
   if(sum(is.na(parents$ID)) > 0) {
-    stop("ID field of 'parents' must not contain missing values")
+    stop("ID field of \'parents\' must not contain missing values")
   }
   
   if(sum(is.na(parents$SEX)) > 0) {
-    stop("SEX field of 'parents' must not contain missing values")
+    stop("SEX field of \'parents\' must not contain missing values")
   }
   
   if(sum(is.na(parents$N_AS_PARENT)) > 0) {
-    stop("N_AS_PARENT field of 'parents'  must not contain missing values")
+    stop("N_AS_PARENT field of \'parents\'  must not contain missing values")
   }
   
   if(sum(parents[parents$SEX == "F","N_AS_PARENT"]) !=  sum(parents[parents$SEX == "M","N_AS_PARENT"])) {
@@ -137,7 +340,7 @@ check.H <- function(H) {
   colnames(H) <- as.character(colnames(H))  
   
   if(sum(!rownames(H) == colnames(H)) > 0) {
-    stop("rownames of H do not match colnames of H")
+    stop("Row names of H do not match column names of H")
   }
   
   if(max(H[upper.tri(H)]) > 3) {
@@ -195,13 +398,13 @@ summarise.fam <- function(families, parents) {
 
 generate.fams <- function(H, parents, ped, max_F) {
   
- # if("dplyr" %in% installed.packages()[, "Package"] == F) {install.packages("dplyr")}   
- #  library(dplyr) 
+  # if("dplyr" %in% installed.packages()[, "Package"] == F) {install.packages("dplyr")}   
+  #  library(dplyr) 
   
   #Data checks
   check.H(H)
   check.parents(parents)
-  check.ped(ped)
+  check.ped2(ped)
   check.max_F(max_F)
   
   if(sum(!parents$ID %in% rownames(H) > 0)) {
@@ -285,11 +488,11 @@ generate.fams <- function(H, parents, ped, max_F) {
 
 solve_lp <- function(families, parents, n_fam_crosses, max_F, min_trait) {
   
-#  if("lpSolveAPI" %in% installed.packages()[, "Package"] == F) {install.packages("lpSolveAPI")}   
-#  library(lpSolveAPI) 
+  #  if("lpSolveAPI" %in% installed.packages()[, "Package"] == F) {install.packages("lpSolveAPI")}   
+  #  library(lpSolveAPI) 
   
-#  if("dplyr" %in% installed.packages()[, "Package"] == F) {install.packages("dplyr")}   
-#  library(dplyr) 
+  #  if("dplyr" %in% installed.packages()[, "Package"] == F) {install.packages("dplyr")}   
+  #  library(dplyr) 
   
   #Data checks
   check.parents(parents)
@@ -376,7 +579,7 @@ ped.order <- function (pedigree) {
   pedigree[,"ID_GEN"] <- NA
   pedigree[(pedigree[, 2] == 0 | pedigree[, 2] == "0" | is.na(pedigree[, 2])) & 
              (pedigree[, 3] == 0 | pedigree[, 3] == "0" | is.na(pedigree[, 3])),"ID_GEN"] <- 0
-
+  
   iteration <- 0
   nrow_ped  <- nrow(pedigree)
   while(sum(is.na(pedigree[,"ID_GEN"])) > 0) {
