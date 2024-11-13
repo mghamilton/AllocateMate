@@ -1,6 +1,8 @@
 #mhamilton@cgiar.org
 #Feb 2021
 
+library(dplyr)
+
 #is.wholenumber function
 is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol #from https://github.com/ProjectMOSAIC/mosaic/blob/master/R/is.wholenumber.R
 
@@ -137,8 +139,8 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
 
     if(mean(optimal_indivs$INDIV_RANK) < mean(indivs$INDIV_RANK)) { #Highest EBV ranked 1
-      indivs[order(indivs$INDIV_EBV , decreasing = F),]
-      optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = F),]
+      indivs <- indivs[order(indivs$INDIV_EBV , decreasing = F),]
+      optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = F),]
       
     } else {                                                    #Lowest EBV ranked 1
       
@@ -152,8 +154,8 @@ check.all_candidates <- function(ped, parents, all_candidates) {
       #regenerate optimal_indivs with modified rankings
       optimal_indivs <- left_join(optimal_indivs, indivs) #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
       
-      indivs[order(indivs$INDIV_EBV, decreasing = T),]
-      optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
+      indivs <- indivs[order(indivs$INDIV_EBV, decreasing = T),]
+      optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
     }
     
     all_indivs <- NULL
@@ -173,17 +175,18 @@ check.all_candidates <- function(ped, parents, all_candidates) {
         all_indivs <- rbind(all_indivs, tmp_indivs)
         rm(tmp_indivs)
       } else {
+        tmp_optimal_indivs <- tmp_optimal_indivs[,c("INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS", "CATEGORY")]
         all_indivs <- rbind(all_indivs, tmp_optimal_indivs)
       }
       rm(tmp_optimal_indivs)
     }
     
     if(sex == "M") {
-      colnames(all_indivs) <- c("SIRE", "CROSS", "SIRE_EBV", "SIRE_FAM", "SIRE_RANK", "CROSS", "SIRE_CATEGORY")
+      colnames(all_indivs) <- c("SIRE", "SIRE_EBV", "SIRE_FAM", "SIRE_RANK", "CROSS", "SIRE_CATEGORY")
     }
     
     if(sex == "F") {
-      colnames(all_indivs) <- c("DAM", "CROSS", "DAM_EBV", "DAM_FAM", "DAM_RANK", "CROSS", "DAM_CATEGORY")
+      colnames(all_indivs) <- c("DAM", "DAM_EBV", "DAM_FAM", "DAM_RANK", "CROSS", "DAM_CATEGORY")
     }
     
     return(all_indivs)
@@ -300,8 +303,8 @@ check.parents <- function(parents) {
     stop("N_AS_PARENT must be a vector of type integer")
   }
   
-  if(sum(parents$N_AS_PARENT < 1) > 0) {
-    stop("N_AS_PARENT must contain integers greater than or equal to 1")
+  if(sum(parents$N_AS_PARENT < 0) > 0) {
+    stop("N_AS_PARENT must contain integers greater than or equal to 0")
   }
   
   if(sum(is.na(parents$ID)) > 0) {
@@ -365,6 +368,10 @@ reduce.ped <- function(ped, parents) {
   }
   
   ped <- ped[ped$ID %in% ancestors,]
+  
+  ped$ID <- as.character(ped$ID)
+  ped$SIRE <- as.character(ped$SIRE)
+  ped$DAM <- as.character(ped$DAM)
   
   return(ped)
 }
