@@ -139,8 +139,8 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
 
     if(mean(optimal_indivs$INDIV_RANK) < mean(indivs$INDIV_RANK)) { #Highest EBV ranked 1
-      indivs <- indivs[order(indivs$INDIV_EBV , decreasing = F),]
-      optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = F),]
+      indivs <- indivs[order(indivs$INDIV_EBV , decreasing = T),]
+      optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
       
     } else {                                                    #Lowest EBV ranked 1
       
@@ -154,8 +154,8 @@ check.all_candidates <- function(ped, parents, all_candidates) {
       #regenerate optimal_indivs with modified rankings
       optimal_indivs <- left_join(optimal_indivs, indivs) #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
       
-      indivs <- indivs[order(indivs$INDIV_EBV, decreasing = T),]
-      optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
+      indivs <- indivs[order(indivs$INDIV_EBV, decreasing = F),]
+      optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = F),]
     }
     
     all_indivs <- NULL
@@ -168,15 +168,17 @@ check.all_candidates <- function(ped, parents, all_candidates) {
       tmp_indivs <- tmp_indivs[!tmp_indivs$INDIV %in% tmp_optimal_indivs$INDIV,] 
       if(nrow(tmp_indivs)> 0) {
         tmp_indivs$CATEGORY <- "Backup"
-        tmp_indivs$INDIV_GROUP <- seq(1, nrow(tmp_indivs), by = nrow(tmp_optimal_indivs)) 
+        tmp_indivs$INDIV_GROUP <- rep(1:nrow(tmp_optimal_indivs), 
+                                      ceiling(nrow(tmp_indivs)/nrow(tmp_optimal_indivs)))[1:nrow(tmp_indivs)]
         tmp_indivs <- left_join(tmp_indivs, tmp_optimal_indivs[,c("INDIV_FAM", "CROSS", "INDIV_GROUP")], by = c("INDIV_FAM", "INDIV_GROUP")) 
+        tmp_indivs <- tmp_indivs[order(tmp_indivs$INDIV_RANK),]
         tmp_indivs <- rbind(tmp_optimal_indivs[,colnames(tmp_indivs)], tmp_indivs)
         tmp_indivs <- tmp_indivs[order(tmp_indivs$INDIV_GROUP),c("INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS", "CATEGORY")]
         all_indivs <- rbind(all_indivs, tmp_indivs)
         rm(tmp_indivs)
       } else {
         tmp_optimal_indivs <- tmp_optimal_indivs[,c("INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS", "CATEGORY")]
-        all_indivs <- rbind(all_indivs, tmp_optimal_indivs)
+       all_indivs <- rbind(all_indivs, tmp_optimal_indivs)
       }
       rm(tmp_optimal_indivs)
     }
@@ -202,8 +204,8 @@ get_optimal_all_candidates <- function(optimal_families, all_candidates) {
   optimal_families_all_cand <- NULL
   
   for(cross in optimal_families$CROSS) {
-    tmp_sires <- sires[sires$CROSS == cross,]
-    tmp_dams <- dams[dams$CROSS == cross,]
+    tmp_sires <- sires[sires$CROSS == cross & !is.na(sires$CROSS),]
+    tmp_dams <- dams[dams$CROSS == cross & !is.na(dams$CROSS),]
     
     if(nrow(tmp_sires) < nrow(tmp_dams)) {
     # Create a new data frame of 'NA' rows with the same column names as 'df'
