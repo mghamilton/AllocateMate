@@ -140,12 +140,14 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   
   for(cross in crosses$CROSS) {
     tmp_fam     <-  unique(output$mating_list[output$mating_list$CROSS == cross,"SIRE_FAM"])
-    tmp_crosses <- output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
-                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"]
+    tmp_crosses <- unique(output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
+                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"])
+    tmp_crosses <- tmp_crosses[!is.na(tmp_crosses)]
     crosses[crosses$CROSS == cross, "CROSSES_WITH_SIRE_FAM"]  <-  paste(tmp_crosses[order(tmp_crosses)],  collapse = " ")
     tmp_fam     <-  unique(output$mating_list[output$mating_list$CROSS == cross,"DAM_FAM"])
-    tmp_crosses <- output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
-                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"]
+    tmp_crosses <- unique(output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
+                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"])
+    tmp_crosses <- tmp_crosses[!is.na(tmp_crosses)]
     crosses[crosses$CROSS == cross, "CROSSES_WITH_DAM_FAM"]  <-  paste(tmp_crosses[order(tmp_crosses)],  collapse = " ")
   rm(tmp_fam, tmp_crosses)
   }
