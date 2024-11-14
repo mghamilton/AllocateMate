@@ -128,13 +128,29 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
     output <- solve_lp(families = families, parents = parents, n_fam_crosses = n_fam_crosses, max_F = max_F, min_trait = "F")
   }
   
-  #  if(!is.null(all_candidates)) {
   output$mating_list <- get_optimal_all_candidates(optimal_families = output$optimal_families, 
                                                    all_candidates = all_candidates)
   output$mating_list <- left_join(output$mating_list, 
                                   output$optimal_families[,c("SIRE", "DAM", "F", "EBV")], 
                                   by = c("SIRE", "DAM"))
-  #  }
+  
+  crosses <- data.frame(CROSS = unique(output$mating_list$CROSS),
+                        CROSSES_WITH_SIRE_FAM = NA,
+                        CROSSES_WITH_DAM_FAM = NA)
+  
+  for(cross in crosses$CROSS) {
+    tmp_fam     <-  unique(output$mating_list[output$mating_list$CROSS == cross,"SIRE_FAM"])
+    tmp_crosses <- output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
+                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"]
+    crosses[crosses$CROSS == cross, "CROSSES_WITH_SIRE_FAM"]  <-  paste(tmp_crosses[order(tmp_crosses)],  collapse = " ")
+    tmp_fam     <-  unique(output$mating_list[output$mating_list$CROSS == cross,"DAM_FAM"])
+    tmp_crosses <- output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
+                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"]
+    crosses[crosses$CROSS == cross, "CROSSES_WITH_DAM_FAM"]  <-  paste(tmp_crosses[order(tmp_crosses)],  collapse = " ")
+  rm(tmp_fam, tmp_crosses)
+  }
+  output$mating_list <- left_join(output$mating_list, crosses)
+  rm (crosses, cross)
   
   output$A_matrix <- H[rownames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM), 
                        colnames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM)]
