@@ -101,6 +101,7 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   }
   rm(sex_check)
   
+  tmp_parents <- tmp_parents[!is.na(tmp_parents$EBV),]
   ebv_check <- tmp_parents[tmp_parents[,"EBV"] != tmp_all_candidates[tmp_all_candidates$ID %in% tmp_parents$ID,"EBV"],"ID"]
   if (length(ebv_check) > 0) {
     stop(paste0("EBV in \'parents\' doesn't match \'parents\'. Check IDs: ",
