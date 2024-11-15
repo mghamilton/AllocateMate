@@ -172,7 +172,7 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
     crosses[crosses$CROSS == cross, "CROSSES_WITH_DAM_FAM"]  <-  paste(tmp_crosses[order(tmp_crosses)],  collapse = " ")
   rm(tmp_fam, tmp_crosses)
   }
-  output$mating_list <- left_join(output$mating_list, crosses)
+  output$mating_list <- left_join(output$mating_list, crosses, by = "CROSS")
   rm (crosses, cross)
   
   output$A_matrix <- H[rownames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM), 
