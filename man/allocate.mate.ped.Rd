@@ -56,7 +56,7 @@ allocate.mate.ped(ped, parents, max_F = 1, method = "min_F", n_fam_crosses = 1)
 'optimal_families' is a data frame containing details of mate allocations (i.e.families to be generated from matings between parents): 
 \itemize{
  \item{'SIRE' male parent.}           
- \item{'DAM' female parent.} 
+ \item{'DAM' female parent.}  
  \item{'F' inbreeding coefficient of family members (i.e. expected inbreeding in progeny).}       
  \item{'EBV' mean of the selected parent EBVs (i.e. expected EBV of progeny).}          
 }
