@@ -126,6 +126,11 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     }
     colnames(optimal_indivs) <- c("INDIV", "CROSS")
     
+    if(sum(is.na(indivs$INDIV_EBV))>0) {
+      set.seed(123)
+      indivs <- indivs[order(runif(nrow(indivs))),]
+      indivs$INDIV_RANK <- 0
+    } else {
     indivs <- indivs %>%
       group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
       # Rank 'INDIV_EBV' values within each group, in descending order. 
@@ -136,10 +141,11 @@ check.all_candidates <- function(ped, parents, all_candidates) {
       # This is important for further analysis to avoid accidental grouping in later operations
       ungroup()
     indivs <- as.data.frame(indivs)
+    }
     
     optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
 
-    if(mean(optimal_indivs$INDIV_RANK) < mean(indivs$INDIV_RANK)) { #Highest EBV ranked 1
+    if(mean(optimal_indivs$INDIV_RANK) <= mean(indivs$INDIV_RANK)) { #Highest EBV ranked 1
       indivs <- indivs[order(indivs$INDIV_EBV , decreasing = T),]
       optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
       
