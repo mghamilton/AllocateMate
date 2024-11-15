@@ -126,19 +126,33 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     }
     colnames(optimal_indivs) <- c("INDIV", "CROSS")
     
-    if(sum(is.na(indivs$INDIV_EBV))>0) {
       set.seed(123)
-      indivs <- indivs[order(runif(nrow(indivs))),]
+      indivs <- indivs[order(runif(nrow(indivs))),]  
+      
+    if(sum(is.na(indivs$INDIV_EBV)) == nrow(indivs)) {
       indivs$INDIV_RANK <- 0
     } else {
+  #  indivs <- indivs %>%
+  #   # filter(!is.na(INDIV_EBV)) %>%  # Remove rows where INDIV_EBV is NA
+  #    group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
+  #    # Rank 'INDIV_EBV' values within each group, in descending order. 
+  #    # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
+  #    # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
+  #    mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
+  #    # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
+  #    # This is important for further analysis to avoid accidental grouping in later operations
+  #    ungroup()
+  # 
+    
     indivs <- indivs %>%
-      group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
-      # Rank 'INDIV_EBV' values within each group, in descending order. 
-      # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
-      # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
-      mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
-      # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
-      # This is important for further analysis to avoid accidental grouping in later operations
+      group_by(INDIV_FAM) %>%
+      mutate(
+        INDIV_RANK = if_else(
+          is.na(INDIV_EBV), 
+          max(dense_rank(-INDIV_EBV), na.rm = TRUE),  # Assign the max rank to individuals with NA
+          dense_rank(-INDIV_EBV)  # Rank the others normally
+        )
+      ) %>%
       ungroup()
     indivs <- as.data.frame(indivs)
     }
