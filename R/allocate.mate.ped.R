@@ -45,29 +45,29 @@
 #' @return 'optimal_families' is a data frame containing details of mate allocations (i.e.families to be generated from matings between parents): 
 #' \itemize{
 #'  \item{'SIRE' male parent.}           
-#'  \item{'DAM' female parent.} 
+#'  \item{'DAM' female parent.}  
 #'  \item{'F' inbreeding coefficient of family members (i.e. expected inbreeding in progeny).}       
 #'  \item{'EBV' mean of the selected parent EBVs (i.e. expected EBV of progeny).}          
 #' } 
 #' @return 'mating_list' is a data frame containing details of mate allocations including potential replacement individuals: 
 #' \itemize{
 #'  \item{'CROSS' computer generated cross (progeny family) identifier.}     
-#'  \item{'SIRE' \'Selected\' or \'Backup\' male parent.}      
+#'  \item{'SIRE' 'Selected' or 'Backup' male parent.}      
 #'  \item{'SIRE_EBV' estimated breeding value (EBV) of the sire.}
-#'  \item{'SIRE_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from \'parents\'.}
+#'  \item{'SIRE_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from 'parents'.}
 #'  \item{'SIRE_RANK' rank of sire within family based on SIRE_EBV.}
-#'  \item{'SIRE_CATEGORY' either \'Selected\' (i.e. N_AS_PARENT > 0 in \'parents\'), or 'Backup' (i.e. N_AS_PARENT = 0 in \'parents\') that could replace the selected sire in the CROSS.}     
-#'  \item{'DAM' \'Selected\' or \'Backup\' female parent.} 
+#'  \item{'SIRE_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected sire in the CROSS.}     
+#'  \item{'DAM' 'Selected' or 'Backup' female parent.} 
 #'  \item{'DAM_EBV' estimated breeding value (EBV) of the dam.}
-#'  \item{'DAM_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from \'parents\'.}
+#'  \item{'DAM_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from 'parents'.}
 #'  \item{'DAM_RANK rank of dam within family based on DAM_EBV.}
-#'  \item{'DAM_CATEGORY' either \'Selected\' (i.e. N_AS_PARENT > 0 in \'parents\'), or 'Backup' (i.e. N_AS_PARENT = 0 in \'parents\') that could replace the selected dam in the CROSS.}            
+#'  \item{'DAM_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected dam in the CROSS.}            
 #'  \item{'F' inbreeding coefficient of family members (i.e. expected inbreeding in progeny).}    
 #'  \item{'EBV' mean of the selected parent EBVs (i.e. expected EBV of progeny).}  
 #'  \item{'CROSSES_WITH_SIRE_FAM list of CROSS containing an sire or dam from the same family as the sire.}
 #'  \item{'CROSSES_WITH_DAM_FAM list of CROSS containing an sire or dam from the same family as the dam.}
 #' }
-#' @return 'A_matrix' relationship matrix (numerator relationship matrix; NRM) for \'Selected\' parents.
+#' @return 'A_matrix' relationship matrix (numerator relationship matrix; NRM) for 'Selected' parents.
 #' @examples
 #' #Retrieve example data
 #' ped <- AllocateMate::ped

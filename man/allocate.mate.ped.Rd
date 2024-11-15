@@ -7,7 +7,7 @@
 allocate.mate.ped(ped, parents, max_F = 1, method = "min_F", n_fam_crosses = 1)
 }
 \arguments{
-\item{ped}{is a 3-column dataframe with the following columns (class in parentheses):
+\item{ped}{is a 3-column data frame with the following columns (class in parentheses):
 \itemize{
  \item{'ID' is the individual identifier of parents and their ancestors (character).} 
  \item{'DAM' is the identifier of the individual's dam (NA if unknown) (character).} 
@@ -19,10 +19,11 @@ allocate.mate.ped(ped, parents, max_F = 1, method = "min_F", n_fam_crosses = 1)
  \item{'ID' is the individual identifier (character).} 
  \item{'SEX' is the sex of the individual - 'M' or 'F', for male and female respectively (character).} 
  \item{'EBV' Estimated breeding value (EBV) of the individual - can not be NA if applying assortative mating as the method (numeric).} 
- \item{'N_AS_PARENT' The number of families the indivdiual is to contribute to (integer).} 
+ \item{'N_AS_PARENT' The number of families the indivdiual is to contribute to. Can be zero if backup parents are to be included in the mating list output (integer).} 
+ \item{'FAM' is the full-sibling family identifier. This column may be omitted (character).} 
 }}
 
-\item{max_F}{is the maxiumum inbreeding coefficient allowed in the offspring of parents (numeric between 0 and 1)}
+\item{max_F}{is the maximum inbreeding coefficient allowed in the offspring of parents (numeric between 0 and 1)}
 
 \item{method}{either 'min_F' (to minimise the average inbreeding in offspring) or 'assortative' (to apply assortative mating) (character)}
 
@@ -56,9 +57,30 @@ allocate.mate.ped(ped, parents, max_F = 1, method = "min_F", n_fam_crosses = 1)
 \itemize{
  \item{'SIRE' male parent.}           
  \item{'DAM' female parent.} 
- \item{'F' inbreeding coefficient of family members (i.e. the 'family F').}       
- \item{'EBV' mean of parent EBVs (i.e. the 'family EBV').}          
+ \item{'F' inbreeding coefficient of family members (i.e. expected inbreeding in progeny).}       
+ \item{'EBV' mean of the selected parent EBVs (i.e. expected EBV of progeny).}          
 }
+
+'mating_list' is a data frame containing details of mate allocations including potential replacement individuals: 
+\itemize{
+ \item{'CROSS' computer generated cross (progeny family) identifier.}     
+ \item{'SIRE' 'Selected' or 'Backup' male parent.}      
+ \item{'SIRE_EBV' estimated breeding value (EBV) of the sire.}
+ \item{'SIRE_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from 'parents'.}
+ \item{'SIRE_RANK' rank of sire within family based on SIRE_EBV.}
+ \item{'SIRE_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected sire in the CROSS.}     
+ \item{'DAM' 'Selected' or 'Backup' female parent.} 
+ \item{'DAM_EBV' estimated breeding value (EBV) of the dam.}
+ \item{'DAM_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from 'parents'.}
+ \item{'DAM_RANK rank of dam within family based on DAM_EBV.}
+ \item{'DAM_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected dam in the CROSS.}            
+ \item{'F' inbreeding coefficient of family members (i.e. expected inbreeding in progeny).}    
+ \item{'EBV' mean of the selected parent EBVs (i.e. expected EBV of progeny).}  
+ \item{'CROSSES_WITH_SIRE_FAM list of CROSS containing an sire or dam from the same family as the sire.}
+ \item{'CROSSES_WITH_DAM_FAM list of CROSS containing an sire or dam from the same family as the dam.}
+}
+
+'A_matrix' relationship matrix (numerator relationship matrix; NRM) for 'Selected' parents.
 }
 \description{
 This function generates a mating list for a set of parents.  
@@ -74,4 +96,6 @@ output <- allocate.mate.ped(ped, parents, max_F = 0.02, method = "min_F", n_fam_
 output$summary
 head(output$all_families)
 head(output$optimal_families)
+head(output$mating_list)
+head(output$A_matrix)
 }
