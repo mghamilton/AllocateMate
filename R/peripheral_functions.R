@@ -26,9 +26,8 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     stop("EBV in \'parents\' must be of type numeric")
   }
   
-  if(!is.numeric(all_candidates$EBV)) {
-    if(sum(is.na(all_candidates$INDIV_EBV)) == nrow(indivs) | sum(is.na(all_candidates$INDIV_EBV)) == 0)
-      stop("For individuals with N_AS_PARENT = zero, EBVs must all be a number or all be NA. Delete rows, make all EBVs NA or provide dummy EBVs in \'parents\' where N_AS_PARENT = zero.")
+  if(sum(is.na(all_candidates$INDIV_EBV)) == nrow(indivs) | sum(is.na(all_candidates$INDIV_EBV)) == 0) {
+    stop("For individuals with N_AS_PARENT = 0, EBVs must all be a number or all be NA. Delete rows, make all EBVs NA or provide dummy EBVs in \'parents\' where N_AS_PARENT = 0.")
   }
   
   if(sum(is.na(all_candidates$ID)) > 0) {
