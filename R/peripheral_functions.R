@@ -533,7 +533,6 @@ solve_lp <- function(families, parents, n_fam_crosses, max_F, min_trait) {
   #  library(dplyr) 
   
   #Data checks
-  check.parents(parents)
   check.n_fam_crosses(n_fam_crosses)
   
   fam_combns   <- as.matrix(levels(families$fam_combn))
