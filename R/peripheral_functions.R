@@ -444,9 +444,6 @@ generate.fams <- function(H, parents, ped, max_F) {
   
   #Data checks
   check.H(H)
-  check.parents(parents)
-  check.ped2(ped)
-  check.max_F(max_F)
   
   if(sum(!parents$ID %in% rownames(H) > 0)) {
     stop("H must contain parents in rownames and colnames")
