@@ -26,6 +26,11 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     stop("EBV in \'parents\' must be of type numeric")
   }
   
+  if(!is.numeric(all_candidates$EBV)) {
+    if(sum(is.na(all_candidates$INDIV_EBV)) == nrow(indivs) | sum(is.na(all_candidates$INDIV_EBV)) == 0)
+    stop("For individuals with N_AS_PARENT = zero, EBVs must all be a number or all be NA. Delete rows, make all EBVs NA or provide dummy EBVs in \'parents\' where N_AS_PARENT = zero.")
+  }
+  
   if(sum(is.na(all_candidates$ID)) > 0) {
     stop("ID field of \'parents\' must not contain missing values")
   }
@@ -132,33 +137,32 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     if(sum(is.na(indivs$INDIV_EBV)) == nrow(indivs)) {
       indivs$INDIV_RANK <- 0
     } else {
-  #  indivs <- indivs %>%
-  #   # filter(!is.na(INDIV_EBV)) %>%  # Remove rows where INDIV_EBV is NA
-  #    group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
-  #    # Rank 'INDIV_EBV' values within each group, in descending order. 
-  #    # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
-  #    # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
-  #    mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
-  #    # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
-  #    # This is important for further analysis to avoid accidental grouping in later operations
-  #    ungroup()
-  # 
-    
     indivs <- indivs %>%
-      group_by(INDIV_FAM) %>%
-      mutate(
-        INDIV_RANK = if_else(
-          is.na(INDIV_EBV), 
-          max(dense_rank(-INDIV_EBV), na.rm = TRUE),  # Assign the max rank to individuals with NA
-          dense_rank(-INDIV_EBV)  # Rank the others normally
-        )
-      ) %>%
+     # filter(!is.na(INDIV_EBV)) %>%  # Remove rows where INDIV_EBV is NA
+      group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
+      # Rank 'INDIV_EBV' values within each group, in descending order. 
+      # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
+      # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
+      mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
+      # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
+      # This is important for further analysis to avoid accidental grouping in later operations
       ungroup()
+    
+  #  indivs <- indivs %>%
+  #    group_by(INDIV_FAM) %>%
+  #    mutate(
+  #      INDIV_RANK = if_else(
+  #       is.na(INDIV_EBV), 
+  #        max(dense_rank(-INDIV_EBV), na.rm = TRUE)+1,  # Assign the max rank to individuals with NA
+  #        dense_rank(-INDIV_EBV)  # Rank the others normally
+  #      )
+  #    ) %>%
+  #    ungroup()
     indivs <- as.data.frame(indivs)
     }
     
     optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
-
+    
     if(mean(optimal_indivs$INDIV_RANK) <= mean(indivs$INDIV_RANK)) { #Highest EBV ranked 1
       indivs <- indivs[order(indivs$INDIV_EBV , decreasing = T),]
       optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
