@@ -114,13 +114,13 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   #  if(nrow(parents) == nrow(all_candidates)) { 
   #    all_candidates <-  NULL
   #  }
-  
-  check.parents(parents)  
+  check.method(method)  
+  check.parents(method,parents)  
   check.ped2(ped)
   ped <- reduce.ped(ped = ped, parents = all_candidates)
   check.n_fam_crosses(n_fam_crosses)
   check.max_F(max_F)
-  check.method(method)
+
   
   # if(!is.null(all_candidates)) {
   all_candidates <- check.all_candidates(ped, parents, all_candidates)

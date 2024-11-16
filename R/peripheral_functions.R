@@ -163,6 +163,9 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     
     optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
     
+    print(mean(optimal_indivs$INDIV_RANK))
+    print(mean(indivs$INDIV_RANK))
+    
     if(mean(optimal_indivs$INDIV_RANK) <= mean(indivs$INDIV_RANK)) { #Highest EBV ranked 1
       indivs <- indivs[order(indivs$INDIV_EBV , decreasing = T),]
       optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
@@ -306,7 +309,7 @@ check.method <- function(method) {
 }
 
 #Check parents function
-check.parents <- function(parents) {
+check.parents <- function(method, parents) {
   
   if(sum(colnames(parents) %in% c("ID", "SEX", "EBV", "N_AS_PARENT")) != 4) {
     stop("Column names of \'parents\' must be: ID, SEX, EBV and N_AS_PARENT")
@@ -324,6 +327,10 @@ check.parents <- function(parents) {
   
   if(!is.numeric(parents$EBV)) {
     stop("EBV in \'parents\' must be of type numeric")
+  }
+  
+  if(method == "assortative" & sum(is.na(parents$EBV)) > 0) {
+      stop("EBV in \'parents\' with N_AS_PARENT > 0 must not be NA if applying assorative mating")
   }
   
   if(sum(!is.wholenumber(parents$N_AS_PARENT)) > 0) {
