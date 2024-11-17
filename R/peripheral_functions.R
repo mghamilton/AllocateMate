@@ -26,9 +26,9 @@ check.all_candidates <- function(ped, parents, all_candidates) {
     stop("EBV in \'parents\' must be of type numeric")
   }
   
-  if(sum(is.na(all_candidates$INDIV_EBV)) == nrow(indivs) | sum(is.na(all_candidates$INDIV_EBV)) == 0) {
-    stop("For individuals with N_AS_PARENT = 0, EBVs must all be a number or all be NA. Delete rows, make all EBVs NA or provide dummy EBVs in \'parents\' where N_AS_PARENT = 0.")
-  }
+  # if(sum(is.na(all_candidates$INDIV_EBV)) == nrow(all_candidates) | sum(is.na(all_candidates$INDIV_EBV)) == 0) {
+  #  stop("For individuals with N_AS_PARENT = 0, EBVs must all be a number or all be NA. Delete rows, make all EBVs NA or provide dummy EBVs in \'parents\' where N_AS_PARENT = 0.")
+  # }
   
   if(sum(is.na(all_candidates$ID)) > 0) {
     stop("ID field of \'parents\' must not contain missing values")
@@ -116,7 +116,7 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   return(all_candidates)
 }
 
-get.parents <- function(all_candidates, optimal_families, sex) {
+get.parents <- function(all_candidates, optimal_families, parents, sex) {
   indivs <- all_candidates[all_candidates$SEX == sex, c("ID", "EBV", "FAM")]
   colnames(indivs) <- c("INDIV", "INDIV_EBV", "INDIV_FAM")
   indivs <- indivs[order(runif(nrow(indivs))),]
@@ -134,32 +134,49 @@ get.parents <- function(all_candidates, optimal_families, sex) {
   
   if(sum(is.na(indivs$INDIV_EBV)) == nrow(indivs)) {
     indivs$INDIV_RANK <- 0
-  } else {
-    indivs <- indivs %>%
-      # filter(!is.na(INDIV_EBV)) %>%  # Remove rows where INDIV_EBV is NA
-      group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
-      # Rank 'INDIV_EBV' values within each group, in descending order. 
-      # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
-      # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
-      mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
-      # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
-      # This is important for further analysis to avoid accidental grouping in later operations
-      ungroup()
+    optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
     
-    #  indivs <- indivs %>%
-    #    group_by(INDIV_FAM) %>%
-    #    mutate(
-    #      INDIV_RANK = if_else(
-    #       is.na(INDIV_EBV), 
-    #        max(dense_rank(-INDIV_EBV), na.rm = TRUE) + 1,  # Assign the max rank to individuals with NA
-    #        dense_rank(-INDIV_EBV)  # Rank the others normally
-    #      )
-    #    ) %>%
-    #    ungroup()
+  } else {
+    indivs <- suppressWarnings(
+      indivs %>%
+        # filter(!is.na(INDIV_EBV)) %>%  # Remove rows where INDIV_EBV is NA
+        group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
+        # Rank 'INDIV_EBV' values within each group, in descending order. 
+        # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
+        # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
+        #    mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
+        # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
+        # This is important for further analysis to avoid accidental grouping in later operations
+        #    ungroup()
+        
+        mutate(
+          INDIV_RANK = if_else(
+            is.na(INDIV_EBV), 
+            max(dense_rank(-INDIV_EBV), na.rm = TRUE) + 1,  # Assign the max rank to individuals with NA
+            dense_rank(-INDIV_EBV)  # Rank the others normally
+          )
+        ) %>%
+        ungroup()
+    )
+    
     indivs <- as.data.frame(indivs)
-  }
-  
-  optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
+    
+    indivs[indivs[, "INDIV_RANK"] %in% c(-Inf, Inf), "INDIV_RANK"] <- NA
+    
+    # indivs[indivs[, "INDIV_RANK"] %in% c(-Inf, Inf) & 
+    #           indivs[, "INDIV"] %in% c(optimal_families$SIRE, optimal_families$DAM), "INDIV_RANK"] <- 1
+    #  indivs[indivs[, "INDIV_RANK"] %in% c(-Inf, Inf) & 
+    #           !(indivs[, "INDIV"] %in% c(optimal_families$SIRE, optimal_families$DAM)), "INDIV_RANK"] <- 2
+    
+    # indivs <- indivs %>%
+    #    group_by(INDIV_FAM) %>% 
+    #    mutate(INDIV_RANK = dense_rank(INDIV_RANK)) %>%
+    #    ungroup()
+    #  indivs <- as.data.frame(indivs)
+    
+    optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
+    
+  } 
   
   if(mean(optimal_indivs$INDIV_RANK, na.rm = T) <= mean(indivs$INDIV_RANK, na.rm = T)) { #Highest EBV ranked 1
     indivs <- indivs[order(indivs$INDIV_EBV , decreasing = T),]
@@ -168,7 +185,13 @@ get.parents <- function(all_candidates, optimal_families, sex) {
     #re-rank in opposite order
     indivs <- indivs %>%
       group_by(INDIV_FAM) %>% 
-      mutate(INDIV_RANK = dense_rank(INDIV_EBV)) %>% 
+      mutate(
+        INDIV_RANK = if_else(
+          is.na(INDIV_EBV), 
+          max(dense_rank(INDIV_EBV), na.rm = TRUE) + 1,  # Assign the max rank to individuals with NA
+          dense_rank(INDIV_EBV)  # Rank the others normally
+        )
+      ) %>%
       ungroup()
     indivs <- as.data.frame(indivs)
     
@@ -203,6 +226,8 @@ get.parents <- function(all_candidates, optimal_families, sex) {
     }
     rm(tmp_optimal_indivs)
   }
+  
+  all_indivs[is.na(all_indivs$INDIV_EBV), "INDIV_RANK"] <- NA #if EBV missing rank is NA
   
   if(sex == "M") {
     colnames(all_indivs) <- c("SIRE", "SIRE_EBV", "SIRE_FAM", "SIRE_RANK", "CROSS", "SIRE_CATEGORY")
@@ -302,7 +327,7 @@ check.method <- function(method) {
 }
 
 #Check parents function
-check.parents <- function(method, parents) {
+check.parents <- function(parents) {
   
   if(sum(colnames(parents) %in% c("ID", "SEX", "EBV", "N_AS_PARENT")) != 4) {
     stop("Column names of \'parents\' must be: ID, SEX, EBV and N_AS_PARENT")
@@ -322,9 +347,9 @@ check.parents <- function(method, parents) {
     stop("EBV in \'parents\' must be of type numeric")
   }
   
-  if(method == "assortative" & sum(is.na(parents$EBV)) > 0) {
-    stop("EBV in \'parents\' with N_AS_PARENT > 0 must not be NA if applying assorative mating")
-  }
+  #  if(method == "assortative" & sum(is.na(parents$EBV)) > 0) {
+  #    stop("EBV in \'parents\' with N_AS_PARENT > 0 must not be NA if applying assorative mating")
+  #  }
   
   if(sum(!is.wholenumber(parents$N_AS_PARENT)) > 0) {
     stop("N_AS_PARENT must be a vector of type integer")
