@@ -116,6 +116,33 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   return(all_candidates)
 }
 
+
+get_rank <- function(indivs) {
+  indivs <- suppressWarnings(
+    indivs %>%
+      group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
+      mutate(
+        INDIV_RANK = if_else(
+          !is.na(INDIV_EBV), 
+          # Rank 'INDIV_EBV' values within each group, in descending order.
+          # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
+          # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
+          dense_rank(-INDIV_EBV),
+          # Assign the max rank to individuals with NA
+          max(dense_rank(-INDIV_EBV), na.rm = TRUE) + 1  
+        )
+      ) %>%
+      ungroup()# Ungroup the data so it's no longer grouped by 'INDIV_FAM'
+  )
+  
+  indivs <- as.data.frame(indivs)
+  
+  indivs[indivs[, "INDIV_RANK"] %in% c(-Inf, Inf), "INDIV_RANK"] <- NA
+  
+  return(indivs)
+}
+
+
 get.parents <- function(all_candidates, optimal_families, parents, sex) {
   indivs <- all_candidates[all_candidates$SEX == sex, c("ID", "EBV", "FAM")]
   colnames(indivs) <- c("INDIV", "INDIV_EBV", "INDIV_FAM")
@@ -137,69 +164,24 @@ get.parents <- function(all_candidates, optimal_families, parents, sex) {
     optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
     
   } else {
-    indivs <- suppressWarnings(
-      indivs %>%
-        # filter(!is.na(INDIV_EBV)) %>%  # Remove rows where INDIV_EBV is NA
-        group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
-        # Rank 'INDIV_EBV' values within each group, in descending order. 
-        # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
-        # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
-        #    mutate(INDIV_RANK = dense_rank(-INDIV_EBV)) %>%
-        # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
-        # This is important for further analysis to avoid accidental grouping in later operations
-        #    ungroup()
-        
-        mutate(
-          INDIV_RANK = if_else(
-            is.na(INDIV_EBV), 
-            max(dense_rank(-INDIV_EBV), na.rm = TRUE) + 1,  # Assign the max rank to individuals with NA
-            dense_rank(-INDIV_EBV)  # Rank the others normally
-          )
-        ) %>%
-        ungroup()
-    )
-    
-    indivs <- as.data.frame(indivs)
-    
-    indivs[indivs[, "INDIV_RANK"] %in% c(-Inf, Inf), "INDIV_RANK"] <- NA
-    
-    # indivs[indivs[, "INDIV_RANK"] %in% c(-Inf, Inf) & 
-    #           indivs[, "INDIV"] %in% c(optimal_families$SIRE, optimal_families$DAM), "INDIV_RANK"] <- 1
-    #  indivs[indivs[, "INDIV_RANK"] %in% c(-Inf, Inf) & 
-    #           !(indivs[, "INDIV"] %in% c(optimal_families$SIRE, optimal_families$DAM)), "INDIV_RANK"] <- 2
-    
-    # indivs <- indivs %>%
-    #    group_by(INDIV_FAM) %>% 
-    #    mutate(INDIV_RANK = dense_rank(INDIV_RANK)) %>%
-    #    ungroup()
-    #  indivs <- as.data.frame(indivs)
-    
-    optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
-    
+    indivs <- get_rank(indivs)
+    tmp_optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") 
   } 
   
-  if(mean(optimal_indivs$INDIV_RANK, na.rm = T) <= mean(indivs$INDIV_RANK, na.rm = T)) { #Highest EBV ranked 1
+  if(mean(tmp_optimal_indivs$INDIV_RANK, na.rm = T) <= mean(indivs$INDIV_RANK, na.rm = T)) { #Highest EBV ranked 1
     indivs <- indivs[order(indivs$INDIV_EBV , decreasing = T),]
-    optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = T),]
+    optimal_indivs <- tmp_optimal_indivs[order(tmp_optimal_indivs$INDIV_EBV, decreasing = T),]
   } else {                                                    #Lowest EBV ranked 1
     #re-rank in opposite order
-    indivs <- indivs %>%
-      group_by(INDIV_FAM) %>% 
-      mutate(
-        INDIV_RANK = if_else(
-          is.na(INDIV_EBV), 
-          max(dense_rank(INDIV_EBV), na.rm = TRUE) + 1,  # Assign the max rank to individuals with NA
-          dense_rank(INDIV_EBV)  # Rank the others normally
-        )
-      ) %>%
-      ungroup()
-    indivs <- as.data.frame(indivs)
+    indivs <- indivs[,colnames(indivs) != "INDIV_RANK"]
+    indivs$INDIV_EBV <- -indivs$INDIV_EBV 
+    indivs <- get_rank(indivs)
+    indivs$INDIV_EBV <- -indivs$INDIV_EBV 
     
-    #regenerate optimal_indivs with modified rankings
-    optimal_indivs <- left_join(optimal_indivs, indivs) #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
+    tmp_optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") 
     
-    indivs <- indivs[order(indivs$INDIV_EBV, decreasing = F),]
-    optimal_indivs <- optimal_indivs[order(optimal_indivs$INDIV_EBV, decreasing = F),]
+    indivs <- indivs[order(indivs$INDIV_EBV , decreasing = F),]
+    optimal_indivs <- tmp_optimal_indivs[order(tmp_optimal_indivs$INDIV_EBV, decreasing = F),]
   }
   
   all_indivs <- NULL
