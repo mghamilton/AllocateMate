@@ -13,8 +13,6 @@ AllocateMate (Version 1) is available at https://github.com/mghamilton/AllocateM
 
 ### To install AllocateMate in R ###
 
-*   install.packages(c("lpSolveAPI", "dplyr", "AGHmatrix"))
-
 *   install.packages("devtools")
 *   library(devtools)
 *   install_github("mghamilton/AllocateMate", dependencies = TRUE, force = TRUE)
