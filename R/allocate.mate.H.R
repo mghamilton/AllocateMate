@@ -67,6 +67,7 @@ allocate.mate.H <- function(H, parents, max_F = 1, method = "min_F") {
   
   check.H(H)
   check.parents(parents)
+  parents$ID <- as.character(parents$ID)
   check.max_F(max_F)
   check.method(method)
   

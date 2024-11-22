@@ -14,6 +14,7 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   
   all_candidates <- all_candidates[,colnames(all_candidates) %in% c("ID", "SEX", "EBV", "FAM")]
   
+  try(all_candidates$ID <- as.character(all_candidates$ID))
   if(!is.character(all_candidates$ID)) {
     stop("ID in \'parents\' must be of type character")
   }
@@ -55,6 +56,7 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   
   if("FAM" %in% colnames(all_candidates)) {
     
+    try(all_candidates$FAM) <- as.character(all_candidates$FAM))
     if(!is.character(all_candidates$FAM)) {
       stop("FAM in \'parents\' must be of type character")
     }
@@ -171,7 +173,8 @@ get.parents <- function(all_candidates, optimal_families, parents, sex) {
   if(mean(tmp_optimal_indivs$INDIV_RANK, na.rm = T) <= mean(indivs$INDIV_RANK, na.rm = T)) { #Highest EBV ranked 1
     indivs <- indivs[order(indivs$INDIV_EBV , decreasing = T),]
     optimal_indivs <- tmp_optimal_indivs[order(tmp_optimal_indivs$INDIV_EBV, decreasing = T),]
-  } else {                                                    #Lowest EBV ranked 1
+    rm(tmp_optimal_indivs)
+  } else { #Lowest EBV ranked 1
     #re-rank in opposite order
     indivs <- indivs[,colnames(indivs) != "INDIV_RANK"]
     indivs$INDIV_EBV <- -indivs$INDIV_EBV 
@@ -182,6 +185,7 @@ get.parents <- function(all_candidates, optimal_families, parents, sex) {
     
     indivs <- indivs[order(indivs$INDIV_EBV , decreasing = F),]
     optimal_indivs <- tmp_optimal_indivs[order(tmp_optimal_indivs$INDIV_EBV, decreasing = F),]
+    rm(tmp_optimal_indivs)
   }
   
   all_indivs <- NULL
@@ -316,6 +320,8 @@ check.parents <- function(parents) {
   }
   
   parents <- parents[,c("ID", "SEX", "EBV", "N_AS_PARENT")]
+  
+  try(parents$ID <- as.character(parents$ID))
   
   if(!is.character(parents$ID)) {
     stop("ID in \'parents\' must be of type character")

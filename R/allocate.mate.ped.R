@@ -55,17 +55,17 @@
 #'  \item{'SIRE' 'Selected' or 'Backup' male parent.}      
 #'  \item{'SIRE_EBV' estimated breeding value (EBV) of the sire.}
 #'  \item{'SIRE_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from 'parents'.}
-#'  \item{'SIRE_RANK' rank of sire within family based on SIRE_EBV.}
-#'  \item{'SIRE_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected sire in the CROSS.}     
+#'  \item{'SIRE_RANK' rank of sire within SIRE_FAM based on SIRE_EBV.}
+#'  \item{'SIRE_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or a 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected sire in the CROSS.}     
 #'  \item{'DAM' 'Selected' or 'Backup' female parent.} 
 #'  \item{'DAM_EBV' estimated breeding value (EBV) of the dam.}
-#'  \item{'DAM_FAM' full-sibling family identifier of the sire.  Computer generated if the FAM column is omitted from 'parents'.}
-#'  \item{'DAM_RANK rank of dam within family based on DAM_EBV.}
-#'  \item{'DAM_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected dam in the CROSS.}            
-#'  \item{'F' inbreeding coefficient of family members (i.e. expected inbreeding in progeny).}    
+#'  \item{'DAM_FAM' full-sibling family identifier of the dam.  Computer generated if the FAM column is omitted from 'parents'.}
+#'  \item{'DAM_RANK rank of the dam within DAM_FAM based on DAM_EBV.}
+#'  \item{'DAM_CATEGORY' either 'Selected' (i.e. N_AS_PARENT > 0 in 'parents'), or a 'Backup' (i.e. N_AS_PARENT = 0 in 'parents') that could replace the selected dam in the CROSS.}            
+#'  \item{'F' expected inbreeding coefficient for the progeny of the cross.}    
 #'  \item{'EBV' mean of the selected parent EBVs (i.e. expected EBV of progeny).}  
-#'  \item{'CROSSES_WITH_SIRE_FAM list of CROSS containing an sire or dam from the same family as the sire.}
-#'  \item{'CROSSES_WITH_DAM_FAM list of CROSS containing an sire or dam from the same family as the dam.}
+#'  \item{'CROSSES_WITH_SIRE_FAM list of CROSS containing a sire or dam from the same family as the sire.}
+#'  \item{'CROSSES_WITH_DAM_FAM list of CROSS containing a sire or dam from the same family as the dam.}
 #' }
 #' @return 'A_matrix' relationship matrix (numerator relationship matrix; NRM) for 'Selected' parents.
 #' @examples
@@ -94,7 +94,7 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   #library(lpSolveAPI)
   #library(AGHmatrix)
   #library(dplyr)
-  
+
   #split parents
   if(!"N_AS_PARENT" %in% colnames(parents)) {
     stop("Column N_AS_PARENT is not present in \'parents\'.")
@@ -115,7 +115,8 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   #    all_candidates <-  NULL
   #  }
   check.method(method)  
-  check.parents(parents)  
+  check.parents(parents) 
+  parents$ID <- as.character(parents$ID)
   check.ped2(ped)
   ped <- reduce.ped(ped = ped, parents = all_candidates)
   check.n_fam_crosses(n_fam_crosses)
