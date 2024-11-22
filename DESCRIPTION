@@ -5,10 +5,10 @@ Version: 2.0
 Author: Matthew Gray Hamilton <matthewhamilton75@gmail.com>
 Maintainer: Matthew Gray Hamilton <matthewhamilton75@gmail.com>
 Depends: R (>= 4.0.0)
-License: GPL-3
 Imports:
     dplyr,
     lpSolveAPI,
     AGHmatrix
+License: GPL-3
 LazyData: true
 RoxygenNote: 7.3.2
