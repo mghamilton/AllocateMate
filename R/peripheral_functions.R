@@ -1,8 +1,6 @@
 #mhamilton@cgiar.org
 #Feb 2021
 
-library(dplyr)
-
 #is.wholenumber function
 is.wholenumber <- function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol #from https://github.com/ProjectMOSAIC/mosaic/blob/master/R/is.wholenumber.R
 
@@ -52,7 +50,7 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   }
   rm(id_check)
   
-  all_candidates <- left_join(all_candidates, ped, by = "ID") 
+  all_candidates <- dplyr::left_join(all_candidates, ped, by = "ID") 
   
   if("FAM" %in% colnames(all_candidates)) {
     
@@ -84,7 +82,7 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   }  else {
     fams <- unique(all_candidates[,c("SIRE", "DAM")])
     fams$FAM <- as.character(paste0(fams$SIRE, "_", fams$DAM)) #as.character(1:nrow(fams))
-    all_candidates <- left_join(all_candidates, fams, by = c("SIRE", "DAM"))
+    all_candidates <- dplyr::left_join(all_candidates, fams, by = c("SIRE", "DAM"))
     rm(fams)
   }
   
@@ -118,23 +116,22 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   return(all_candidates)
 }
 
-
 get_rank <- function(indivs) {
   indivs <- suppressWarnings(
     indivs %>%
-      group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
-      mutate(
-        INDIV_RANK = if_else(
+      dplyr::group_by(INDIV_FAM) %>% # Group the data by 'INDIV_FAM' to rank 'INDIV_EBV' within these groups
+      dplyr::mutate(
+        INDIV_RANK = dplyr::if_else(
           !is.na(INDIV_EBV), 
           # Rank 'INDIV_EBV' values within each group, in descending order.
           # 'dense_rank()' assigns sequential ranks, even for tied values (no gaps in ranks).
           # The '-' before 'INDIV_EBV' ranks the values in descending order (higher INDIV_EBV gets a lower rank)
-          dense_rank(-INDIV_EBV),
+          dplyr::dense_rank(-INDIV_EBV),
           # Assign the max rank to individuals with NA
-          max(dense_rank(-INDIV_EBV), na.rm = TRUE) + 1  
+          max(dplyr::dense_rank(-INDIV_EBV), na.rm = TRUE) + 1  
         )
       ) %>%
-      ungroup()# Ungroup the data so it's no longer grouped by 'INDIV_FAM'
+      dplyr::ungroup() # Ungroup the data so it's no longer grouped by 'INDIV_FAM'
   )
   
   indivs <- as.data.frame(indivs)
@@ -143,7 +140,6 @@ get_rank <- function(indivs) {
   
   return(indivs)
 }
-
 
 get.parents <- function(all_candidates, optimal_families, parents, sex) {
   indivs <- all_candidates[all_candidates$SEX == sex, c("ID", "EBV", "FAM")]
@@ -163,11 +159,11 @@ get.parents <- function(all_candidates, optimal_families, parents, sex) {
   
   if(sum(is.na(indivs$INDIV_EBV)) == nrow(indivs)) {
     indivs$INDIV_RANK <- 0
-    optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
+    optimal_indivs <- dplyr::left_join(optimal_indivs, indivs, by = "INDIV") #"INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS"
     
   } else {
     indivs <- get_rank(indivs)
-    tmp_optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") 
+    tmp_optimal_indivs <- dplyr::left_join(optimal_indivs, indivs, by = "INDIV") 
   } 
   
   if(mean(tmp_optimal_indivs$INDIV_RANK, na.rm = T) <= mean(indivs$INDIV_RANK, na.rm = T)) { #Highest EBV ranked 1
@@ -181,7 +177,7 @@ get.parents <- function(all_candidates, optimal_families, parents, sex) {
     indivs <- get_rank(indivs)
     indivs$INDIV_EBV <- -indivs$INDIV_EBV 
     
-    tmp_optimal_indivs <- left_join(optimal_indivs, indivs, by = "INDIV") 
+    tmp_optimal_indivs <- dplyr::left_join(optimal_indivs, indivs, by = "INDIV") 
     
     indivs <- indivs[order(indivs$INDIV_EBV , decreasing = F),]
     optimal_indivs <- tmp_optimal_indivs[order(tmp_optimal_indivs$INDIV_EBV, decreasing = F),]
@@ -200,7 +196,7 @@ get.parents <- function(all_candidates, optimal_families, parents, sex) {
       tmp_indivs$CATEGORY <- "Backup"
       tmp_indivs$INDIV_GROUP <- rep(1:nrow(tmp_optimal_indivs), 
                                     ceiling(nrow(tmp_indivs)/nrow(tmp_optimal_indivs)))[1:nrow(tmp_indivs)]
-      tmp_indivs <- left_join(tmp_indivs, tmp_optimal_indivs[,c("INDIV_FAM", "CROSS", "INDIV_GROUP")], by = c("INDIV_FAM", "INDIV_GROUP")) 
+      tmp_indivs <- dplyr::left_join(tmp_indivs, tmp_optimal_indivs[,c("INDIV_FAM", "CROSS", "INDIV_GROUP")], by = c("INDIV_FAM", "INDIV_GROUP")) 
       tmp_indivs <- tmp_indivs[order(tmp_indivs$INDIV_RANK),]
       tmp_indivs <- rbind(tmp_optimal_indivs[,colnames(tmp_indivs)], tmp_indivs)
       tmp_indivs <- tmp_indivs[order(tmp_indivs$INDIV_GROUP),c("INDIV", "INDIV_EBV", "INDIV_FAM", "INDIV_RANK", "CROSS", "CATEGORY")]
@@ -445,9 +441,6 @@ summarise.fam <- function(families, parents) {
 
 generate.fams <- function(H, parents, ped, max_F) {
   
-  # if("dplyr" %in% installed.packages()[, "Package"] == F) {install.packages("dplyr")}   
-  #  library(dplyr) 
-  
   #Data checks
   check.H(H)
   
@@ -531,13 +524,7 @@ generate.fams <- function(H, parents, ped, max_F) {
 }
 
 solve_lp <- function(families, parents, n_fam_crosses, max_F, min_trait) {
-  
-  #  if("lpSolveAPI" %in% installed.packages()[, "Package"] == F) {install.packages("lpSolveAPI")}   
-  #  library(lpSolveAPI) 
-  
-  #  if("dplyr" %in% installed.packages()[, "Package"] == F) {install.packages("dplyr")}   
-  #  library(dplyr) 
-  
+
   #Data checks
   check.n_fam_crosses(n_fam_crosses)
   
@@ -642,7 +629,7 @@ ped.order <- function (pedigree) {
     if(iteration > nrow_ped) {
       stop("Unknown issue when ordering pedigree so that ID listed before it is a DAM or SIRE")
     }
-    iteration + 1
+    iteration <- iteration + 1
   }
   pedigree <- pedigree[order(pedigree[,"ID_GEN"]),]
   

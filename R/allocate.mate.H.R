@@ -54,16 +54,13 @@
 #' @import lpSolveAPI
 #' @import dplyr
 #' @export
-# @import nadiv
 
 allocate.mate.H <- function(H, parents, max_F = 1, method = "min_F") {
   #mhamilton@cgiar.org
-  #Feb 2021
+  #Nov 2024
   
-  # if("nadiv" %in% installed.packages()[, "Package"] == F) {install.packages("nadiv")}   
-  # library(nadiv)
-  # library(lpSolveAPI)
-  # library(dplyr)
+   #library(lpSolveAPI)
+   #library(dplyr)
   
   check.H(H)
   check.parents(parents)
@@ -80,7 +77,6 @@ allocate.mate.H <- function(H, parents, max_F = 1, method = "min_F") {
                     SIRE = (nrow(H)+1):(nrow(H)*2))
   ped[ped$DAM == 0,"DAM"] <- NA
   ped[ped$SIRE == 0,"SIRE"] <- NA
-  #ped <- nadiv::prepPed(ped)
   
   ped$ID <- as.character(ped$ID)
   ped$DAM <- as.character(ped$DAM)

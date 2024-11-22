@@ -87,14 +87,12 @@
 
 allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_crosses = 1) {
   #mhamilton@cgiar.org
-  #Feb 2021
+  #Nov 2024
   
-  #if("nadiv" %in% installed.packages()[, "Package"] == F) {install.packages("nadiv")}   
-  #library(nadiv)
   #library(lpSolveAPI)
   #library(AGHmatrix)
   #library(dplyr)
-
+  
   #split parents
   if(!"N_AS_PARENT" %in% colnames(parents)) {
     stop("Column N_AS_PARENT is not present in \'parents\'.")
@@ -121,7 +119,7 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   ped <- reduce.ped(ped = ped, parents = all_candidates)
   check.n_fam_crosses(n_fam_crosses)
   check.max_F(max_F)
-
+  
   
   # if(!is.null(all_candidates)) {
   all_candidates <- check.all_candidates(ped, parents, all_candidates)
@@ -152,9 +150,9 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   
   output$mating_list <- get_optimal_all_candidates(optimal_families = output$optimal_families, 
                                                    all_candidates = all_candidates)
-  output$mating_list <- left_join(output$mating_list, 
-                                  output$optimal_families[,c("SIRE", "DAM", "F", "EBV")], 
-                                  by = c("SIRE", "DAM"))
+  output$mating_list <- dplyr::left_join(output$mating_list, 
+                                         output$optimal_families[,c("SIRE", "DAM", "F", "EBV")], 
+                                         by = c("SIRE", "DAM"))
   
   crosses <- data.frame(CROSS = unique(output$mating_list$CROSS),
                         CROSSES_WITH_SIRE_FAM = NA,
@@ -164,18 +162,18 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
     tmp_fam     <-  unique(output$mating_list[output$mating_list$CROSS == cross,"SIRE_FAM"])
     tmp_fam     <-  tmp_fam[!is.na(tmp_fam)]
     tmp_crosses <- unique(output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
-                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"])
+                                               output$mating_list$DAM_FAM == tmp_fam, "CROSS"])
     tmp_crosses <- tmp_crosses[!is.na(tmp_crosses)]
     crosses[crosses$CROSS == cross, "CROSSES_WITH_SIRE_FAM"]  <-  paste(tmp_crosses[order(tmp_crosses)],  collapse = " ")
     tmp_fam     <-  unique(output$mating_list[output$mating_list$CROSS == cross,"DAM_FAM"])
     tmp_fam     <-  tmp_fam[!is.na(tmp_fam)]
     tmp_crosses <- unique(output$mating_list[output$mating_list$SIRE_FAM == tmp_fam |
-                                        output$mating_list$DAM_FAM == tmp_fam, "CROSS"])
+                                               output$mating_list$DAM_FAM == tmp_fam, "CROSS"])
     tmp_crosses <- tmp_crosses[!is.na(tmp_crosses)]
     crosses[crosses$CROSS == cross, "CROSSES_WITH_DAM_FAM"]  <-  paste(tmp_crosses[order(tmp_crosses)],  collapse = " ")
-  rm(tmp_fam, tmp_crosses)
+    rm(tmp_fam, tmp_crosses)
   }
-  output$mating_list <- left_join(output$mating_list, crosses, by = "CROSS")
+  output$mating_list <- dplyr::left_join(output$mating_list, crosses, by = "CROSS")
   rm (crosses, cross)
   
   output$A_matrix <- H[rownames(H) %in% c(output$optimal_families$SIRE, output$optimal_families$DAM), 
