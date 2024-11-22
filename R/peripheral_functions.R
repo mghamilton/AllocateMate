@@ -56,7 +56,7 @@ check.all_candidates <- function(ped, parents, all_candidates) {
   
   if("FAM" %in% colnames(all_candidates)) {
     
-    try(all_candidates$FAM) <- as.character(all_candidates$FAM))
+    try(all_candidates$FAM <- as.character(all_candidates$FAM))
     if(!is.character(all_candidates$FAM)) {
       stop("FAM in \'parents\' must be of type character")
     }
