@@ -71,6 +71,9 @@ allocate.mate.H <- function(H, parents, max_F = 1, method = "min_F") {
   check.max_F(max_F)
   check.method(method)
   
+  #allocate.mate.H ignores parents with N_AS_PARENT = 0
+  parents <- parents[parents$N_AS_PARENT > 0,]
+  
   #add ped 
   ped <- data.frame(ID = rownames(H),
                     DAM  = 1:nrow(H),

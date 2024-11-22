@@ -451,8 +451,8 @@ generate.fams <- function(H, parents, ped, max_F) {
   #Data checks
   check.H(H)
   
-  if(sum(!parents$ID %in% rownames(H) > 0)) {
-    stop("H must contain parents in rownames and colnames")
+  if(sum(!parents[parents$N_AS_PARENT > 0,"ID"] %in% rownames(H) > 0)) {
+    stop("H must contain parents with N_AS_PARENT > 0 in rownames and colnames")
     
   }
   
