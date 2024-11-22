@@ -17,7 +17,7 @@ AllocateMate (Version 1) is available at https://github.com/mghamilton/AllocateM
 
 *   install.packages("devtools")
 *   library(devtools)
-*   install_github("mghamilton/AllocateMate")
+*   install_github("mghamilton/AllocateMate", dependencies = TRUE, force = TRUE)
 *   library(AllocateMate)
 *   help ("allocate.mate.ped")
 *   help ("allocate.mate.H")
