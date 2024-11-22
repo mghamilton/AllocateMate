@@ -1,6 +1,8 @@
 # AllocateMate #
 
-AllocateMate is a R package (R Core Team 2016) comprised of two primary functions: allocate.mate.ped and allocate.mate.H
+AllocateMate (Version 2) is a R package (R Core Team 2016) comprised of two primary functions: allocate.mate.ped and allocate.mate.H
+
+AllocateMate (Version 1) is available at https://github.com/mghamilton/AllocateMateV1Archive
 
 ### What is AllocateMate ###
 
