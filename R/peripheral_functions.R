@@ -358,6 +358,11 @@ check.parents <- function(parents) {
   if(sum(parents[parents$SEX == "F","N_AS_PARENT"]) !=  sum(parents[parents$SEX == "M","N_AS_PARENT"])) {
     stop("Sum of N_AS_PARENT for females must equal the sum of N_AS_PARENT for males")
   }
+  
+  if(sum(duplicated(parents$ID)) > 0) {
+    stop(paste0("ID in parents is duplicted: ",
+                paste(parents[duplicated(parents$ID),"ID"], collapse = " ")))
+  }
 }
 
 #Check n_fam_crosses function
