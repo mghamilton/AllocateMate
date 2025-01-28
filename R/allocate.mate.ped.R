@@ -91,7 +91,7 @@ allocate.mate.ped <- function(ped, parents, max_F = 1, method = "min_F", n_fam_c
   
   #library(lpSolveAPI)
   #library(AGHmatrix)
-  #library(dplyr)
+  library(dplyr)
   
   #split parents
   if(!"N_AS_PARENT" %in% colnames(parents)) {
